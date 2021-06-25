@@ -81,11 +81,11 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead){  //modify
         char delimit[]=" ,.-':;?()+*/%$#!\"@^&][";
         char *string[1000]; //存放content
         char *string2[256]; //存放subject
-        strtok(m->subject, delimit);
         int idx = 0, j = 0, idx2 = 0;
         
-        string[idx] = strtok(m->content, delimit);    
-        
+        string[idx] = strtok(m->content, delimit);
+        string2[idx2] = strtok(m->subject, delimit);
+        //content
         while(string[idx] != NULL){
             int h = 0;
             int len = 0; //token長度
@@ -123,9 +123,51 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead){  //modify
                     }
                 }   
             }
-            printf("string [%d] = %s\n", idx, string[idx]); 
+            printf("content [%d] = %s\n", idx, string[idx]); 
             idx++;
             string[idx] = strtok(NULL, delimit);
+        }
+        //subject
+        while(string2[idx2] != NULL){
+            int h = 0;
+            int len = 0; //token長度
+            h = hash(string2[idx2], &len);
+            printf("%d ", h);
+            if(tokenhead[h] == NULL)  //目前hash_table這格是空的
+                tokenhead[h] = NewHead(string2[idx2], i, len);
+            
+            else{
+                //printf("collision\n");
+                Token *curr = tokenhead[h]->head;
+                //printf("目前在位的單詞 %s\n", curr->token);
+ 
+                int is_diff = 0;
+                is_diff = strncmp(curr->token, string2[idx2], len);
+                
+                if(is_diff == 0){
+                    //printf("雖然collision但是檢查到同一個單詞: ");
+                    idx2++;
+                    string2[idx2] = strtok(NULL, delimit);
+                    continue;
+                }
+                
+                while(is_diff != 0){
+                    printf("發生collision且是不同的單詞：\n: ");
+                    //如果直到最後都沒有檢查到符合者
+                    if(curr->next == NULL){
+                        tokenhead[h]->tail->next = addToken(string2[idx2], i, len);
+                        tokenhead[h]->tail = tokenhead[h]->tail->next; //update tail
+                        break;
+                    }
+                    else{
+                        curr = curr->next;
+                        is_diff = strncmp(curr->token, string2[idx2], len);
+                    }
+                }   
+            }
+            printf("subject [%d] = %s\n", idx2, string2[idx2]); 
+            idx2++;
+            string2[idx2] = strtok(NULL, delimit);
         }
     } 
 }
