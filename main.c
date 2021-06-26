@@ -52,7 +52,7 @@ Token *addToken(char *word, int key, int len){
     Token *newtoken = (Token*)malloc(sizeof(Token));
     newtoken->next = NULL;
     newtoken->token = word;
-    newtoken->len = len; //modify
+    newtoken->len = len;
     MailSite *site = addSite(key);
     newtoken->first = site; //第幾封信有這個token
     newtoken->tail = site;
@@ -62,7 +62,7 @@ Token *addToken(char *word, int key, int len){
 
 TokenHead *NewHead(char *word, int key, int len){
     TokenHead *newhead = (TokenHead*)malloc(sizeof(TokenHead));
-    newhead->head = addToken(word, key, len); //modify
+    newhead->head = addToken(word, key, len);
     newhead->tail = newhead->head;
     return newhead;
 }
@@ -86,7 +86,7 @@ int hash(char const* s, int* len_ptr) {
 }
 
 
-void tokenize(mail **mails, int n_mails, TokenHead **tokenhead){  //modify
+void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[]){
     for(int i = 0; i < n_mails ; i++){
         mail *m = &(*mails)[i];
         //printf("%d\n", strlen(m->content));
@@ -237,8 +237,9 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead){  //modify
 int main(void){
 	api.init(&n_mails, &n_queries, &mails, &queries);
 	//前置作業1. tokenize
-    TokenHead **tokenhead = calloc(999983, sizeof(TokenHead*));  //modify
-    tokenize(&mails, n_mails, tokenhead);
+    TokenHead **tokenhead = calloc(999983, sizeof(TokenHead*));
+    MailSet mailSet[10000];
+    tokenize(&mails, n_mails, tokenhead, mailSet);
     printf("結束功能");
     printf("-----------------");
     
