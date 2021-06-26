@@ -230,8 +230,55 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[
             idx2++;
             string2[idx2] = strtok(NULL, delimit);
         }
-        mailSet[i].tokenSet_size = size + 1; //update size
+        mailSet[i].tokenSet_size = size; //update size
     } 
+}
+
+int Find_Similar(int mid, float threshold, TokenHead** tokenhead, MailSet mailSet[], int answer[]){
+    int hit[10000];
+    // float similarity[10000];
+    int idx = 0;
+    for (int i = 0; i < mailSet[mid].tokenSet_size; i++){  //mid的所有token跑過一遍
+        int h = 0;
+        int len = 0;
+        char* element = mailSet[mid].tokenSet[i];  //tokenSet[mid]的集合元素
+        h = hash(element, &len);
+        Token *curr = tokenhead[h]->head;
+
+        int is_diff = 0;
+        is_diff = strncmp(curr->token, element, len);
+
+        if(is_diff == 0){
+            MailSite* tmp = curr->first;
+            while(tmp != NULL){
+                if (tmp->key != mid) //排除自己
+                    hit[tmp->key] += 1;
+                tmp = tmp->next;
+            }
+            continue;
+        }
+
+        while(is_diff != 0){
+            curr = curr->next;
+            is_diff = strncmp(curr->token, element, len);
+        }
+
+        MailSite* tmp = curr->first;
+        while(tmp != NULL){
+            if (tmp->key != mid) //排除自己
+                hit[tmp->key] += 1;
+            tmp = tmp->next;
+        }
+    }
+
+    for(int i = 0; i < 10000; i++){  //輸出答案
+        float similarity = (float)(hit[i]) / (float)(mailSet[i].tokenSet_size + mailSet[mid].tokenSet_size - hit[i]);
+        if (similarity > threshold){
+            answer[idx] = i;
+            idx ++;
+        }
+    }
+    return idx;
 }
 
 int main(void){
@@ -243,22 +290,34 @@ int main(void){
     printf("結束功能");
     printf("-----------------");
     
-    int num = 1;
-    for(int i = 0; i < 999983; i++){
-        if(tokenhead[i] != NULL){
-            printf("%d ", i);
-            Token *curr = tokenhead[i]->head;
-            printf("num = %d ", num);
-            num++;
-            //printf("%d %d\n", num, i);
-            printf("%s\n", curr->token);
-            while (curr->next != NULL){
-                 curr = curr->next;
-                 printf("%s\n", curr->token);
-                 num++;
-            }
-        }
-    }
+    int answer[10000];  //for task1 and task2
+
+    for(int i = 0; i < n_queries; i++){
+		if(queries[i].type == find_similar)
+		{
+			int mid = queries[i].data.find_similar_data.mid;
+            float threshold = queries[i].data.find_similar_data.threshold;
+            int answer_len = Find_Similar(mid, threshold, tokenhead, mailSet, answer);
+			api.answer(queries[i].id, answer, answer_len);
+		}
+	}
+
+    // int num = 1;
+    // for(int i = 0; i < 999983; i++){
+    //     if(tokenhead[i] != NULL){
+    //         printf("%d ", i);
+    //         Token *curr = tokenhead[i]->head;
+    //         printf("num = %d ", num);
+    //         num++;
+    //         //printf("%d %d\n", num, i);
+    //         printf("%s\n", curr->token);
+    //         while (curr->next != NULL){
+    //              curr = curr->next;
+    //              printf("%s\n", curr->token);
+    //              num++;
+    //         }
+    //     }
+    // }
 	//printf("%s ", queries[1]);
 	// for(int i = 0; i < n_queries; i++)
 	// 	if(queries[i].type == expression_match){
