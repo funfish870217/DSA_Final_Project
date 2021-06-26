@@ -234,7 +234,7 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[
     } 
 }
 
-int Find_Similar(int mid, float threshold, TokenHead** tokenhead, MailSet mailSet[], int answer[]){
+int Find_Similar(int mid, float threshold, TokenHead** tokenhead, MailSet mailSet[], int answer[], int n_mails){
     int hit[10000];
     // float similarity[10000];
     int idx = 0;
@@ -271,7 +271,7 @@ int Find_Similar(int mid, float threshold, TokenHead** tokenhead, MailSet mailSe
         }
     }
 
-    for(int i = 0; i < 10000; i++){  //輸出答案
+    for(int i = 0; i < n_mails; i++){  //輸出答案
         float similarity = (float)(hit[i]) / (float)(mailSet[i].tokenSet_size + mailSet[mid].tokenSet_size - hit[i]);
         if (similarity > threshold){
             answer[idx] = i;
@@ -297,7 +297,7 @@ int main(void){
 		{
 			int mid = queries[i].data.find_similar_data.mid;
             float threshold = queries[i].data.find_similar_data.threshold;
-            int answer_len = Find_Similar(mid, threshold, tokenhead, mailSet, answer);
+            int answer_len = Find_Similar(mid, threshold, tokenhead, mailSet, answer, n_mails);
 			api.answer(queries[i].id, answer, answer_len);
 		}
 	}
