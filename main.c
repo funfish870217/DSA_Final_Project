@@ -1,10 +1,8 @@
 #include "api.h"
+#include "keys.code.h"
 #include <stdio.h>
 #include <string.h>
-
-
-// The testdata only contains the first 100 mails (mail1 ~ mail100)
-// and 2000 queries for you to debug.
+#include <ctype.h>
 
 int n_mails;
 int n_queries;
@@ -59,7 +57,6 @@ Token *addToken(char *word, int key, int len){
     return newtoken;
 }
 
-
 TokenHead *NewHead(char *word, int key, int len){
     TokenHead *newhead = (TokenHead*)malloc(sizeof(TokenHead));
     newhead->head = addToken(word, key, len);
@@ -68,24 +65,28 @@ TokenHead *NewHead(char *word, int key, int len){
 }
 
 
-int hash(char const* s, int* len_ptr) {
-    const int p = 31;
-    //const int m = 1e9 + 9;
-    const int m = 999983;
-    long long hash_value = 0;
-    long long p_pow = 1;
-    while ( *s != '\0' ) {
-        //printf("%lld ", hash_value);
-        // 處理大寫的情況
-            if (*s > 64 && *s < 91)  //大寫
-            hash_value = (hash_value + (((unsigned char) * s) + 32 - '0' + 1) * p_pow) % m;
-            else
-            hash_value = (hash_value + ((unsigned char) * s - '0' + 1) * p_pow) % m;
-        p_pow = (p_pow * p) % m;
-        ++s;
+int hash(const char *key, int* len_ptr){
+    int i, f1 = 0, f2 = 0;
+    for (i = 0; key[i] != '\0' && i < NS; i++) {
+        //調整大小寫
+        //printf("ascII = %d\n", key[i]);
+        if(key[i] <= 90 && key[i] >= 65){
+            int Key = tolower(key[i]);
+            f1 += S1[i] * Key;
+            f2 += S2[i] * Key;
+        }
+        else{
+            f1 += S1[i] * key[i];
+            f2 += S2[i] * key[i];
+        }
+        f1 %= NG;
+        f2 %= NG;
         *len_ptr += 1;
     }
-    return hash_value;
+    i = (G[f1] + G[f2]) % NG;    
+    if (i < NK && strcasecmp(key, K[i]) == 0)
+        return i;
+    return -1;
 }
 
 
@@ -98,7 +99,6 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[
         char *string2[256]; //存放subject
         int idx = 0, j = 0, idx2 = 0;
         int size = 0; //tokenSet大小
-        
         string[idx] = strtok(m->content, delimit);    
 
         //content
@@ -119,7 +119,7 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[
                 //printf("目前在位的單詞 %s\n", curr->token);
  
                 int is_diff = 0;
-                is_diff = strncmp(curr->token, string[idx], len);
+                is_diff = strcasecmp(curr->token, string[idx]);
                 
                 if(is_diff == 0){
                     //printf("雖然collision但是檢查到同一個單詞: ");
@@ -134,32 +134,6 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[
                     string[idx] = strtok(NULL, delimit);
                     continue;
                 }
-                
-                while(is_diff != 0){
-                    // printf("發生collision且是不同的單詞：\n: ");
-                    //如果直到最後都沒有檢查到符合者
-                    if(curr->next == NULL){
-                        tokenhead[h]->tail->next = addToken(string[idx], i, len);
-                        tokenhead[h]->tail = tokenhead[h]->tail->next; //update tail
-                        mailSet[i] = addSet(mailSet, string[idx], len, size, i);
-                        size += 1;
-                        break;
-                    }
-                    else{
-                        curr = curr->next;
-                        is_diff = strncmp(curr->token, string[idx], len);
-                        
-						if (is_diff == 0){
-                            if(i != curr->tail->key){
-                                curr->tail->next = addSite(i);
-                                curr->tail = curr->tail->next;
-                                mailSet[i] = addSet(mailSet, string[idx], len, size, i);
-                                size += 1;
-                            }
-                            break;
-                        }   
-                    }
-                }   
             }
             // printf("string [%d] = %s\n", idx, string[idx]); 
             idx++;
@@ -187,7 +161,7 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[
                 //printf("目前在位的單詞 %s\n", curr->token);
  
                 int is_diff = 0;
-                is_diff = strncmp(curr->token, string2[idx2], len);
+                is_diff = strcasecmp(curr->token, string2[idx2]);
                 
                 if(is_diff == 0){
                     //printf("雖然collision但是檢查到同一個單詞: ");
@@ -202,32 +176,6 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[
                     string2[idx2] = strtok(NULL, delimit);
                     continue;
                 }
-                
-                while(is_diff != 0){
-                    // printf("發生collision且是不同的單詞：\n: ");
-                    //如果直到最後都沒有檢查到符合者
-                    if(curr->next == NULL){
-                        tokenhead[h]->tail->next = addToken(string2[idx2], i, len);
-                        tokenhead[h]->tail = tokenhead[h]->tail->next; //update tail
-                        mailSet[i] = addSet(mailSet, string2[idx2], len, size, i);
-                        size += 1;
-                        break;
-                    }
-                    else{
-                        curr = curr->next;
-                        is_diff = strncmp(curr->token, string2[idx2], len);
-                        
-						if (is_diff == 0){
-                            if(i != curr->tail->key){
-                                curr->tail->next = addSite(i);
-                                curr->tail = curr->tail->next;
-                                mailSet[i] = addSet(mailSet, string2[idx2], len, size, i);
-                                size += 1;
-                            }
-                            break;
-                        }   
-                    }
-                }   
             }
             // printf("string2 [%d] = %s\n", idx2, string2[idx2]); 
             idx2++;
@@ -249,7 +197,7 @@ int Find_Similar(int mid, float threshold, TokenHead** tokenhead, MailSet mailSe
         h = hash(element, &len);
         Token *curr = tokenhead[h]->head;
         int is_diff = 0;
-        is_diff = strncmp(curr->token, element, len);
+        is_diff = strcasecmp(curr->token, element);
 
         if(is_diff == 0){
             MailSite* tmp = curr->first;
@@ -263,7 +211,7 @@ int Find_Similar(int mid, float threshold, TokenHead** tokenhead, MailSet mailSe
 
         while(is_diff != 0){
             curr = curr->next;
-            is_diff = strncmp(curr->token, element, len);
+            is_diff = strcasecmp(curr->token, element);
         }
 
         MailSite* tmp = curr->first;
@@ -287,7 +235,7 @@ int Find_Similar(int mid, float threshold, TokenHead** tokenhead, MailSet mailSe
 int main(void){
 	api.init(&n_mails, &n_queries, &mails, &queries);
 	//前置作業1. tokenize
-    TokenHead **tokenhead = calloc(999983, sizeof(TokenHead*));
+    TokenHead **tokenhead = calloc(NK, sizeof(TokenHead*));
     MailSet mailSet[10000];
     tokenize(&mails, n_mails, tokenhead, mailSet);
 

@@ -33,10 +33,10 @@ typedef struct MailSet{
 	int tokenSet_size; //tokenSet總大小
 }MailSet;
 
-MailSet addSet(MailSet mailSet, char *word, int len, int size){
-    mailSet.tokenSet[size] = word;
-    mailSet.token_len[size] = len;
-    return mailSet;
+MailSet addSet(MailSet mailSet[], char *word, int len, int size, int i){
+    mailSet[i].tokenSet[size] = word;
+    mailSet[i].token_len[size] = len;
+    return mailSet[i];
 }
 
 MailSite *addSite(int key){
@@ -109,7 +109,7 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[
             // printf("%d ", h);
             if(tokenhead[h] == NULL){ //目前hash_table這格是空的
                 tokenhead[h] = NewHead(string[idx], i, len);
-                mailSet[i] = addSet(mailSet[i], string[idx], len, size);
+                mailSet[i] = addSet(mailSet, string[idx], len, size, i);
                 size += 1;
             }
             
@@ -119,14 +119,14 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[
                 //printf("目前在位的單詞 %s\n", curr->token);
  
                 int is_diff = 0;
-                is_diff = strncmp(curr->token, string[idx], len);
+                is_diff = strcasecmp(curr->token, string[idx]);
                 
                 if(is_diff == 0){
                     //printf("雖然collision但是檢查到同一個單詞: ");
 					if(i != curr->tail->key){
                         curr->tail->next = addSite(i);
                         curr->tail = curr->tail->next;
-                        mailSet[i] = addSet(mailSet[i], string[idx], len, size);
+                        mailSet[i] = addSet(mailSet, string[idx], len, size, i);
                         size += 1;
                     }
                     
@@ -151,7 +151,7 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[
             // printf("%d ", h);
             if(tokenhead[h] == NULL){ //目前hash_table這格是空的
                 tokenhead[h] = NewHead(string2[idx2], i, len);
-                mailSet[i] = addSet(mailSet[i], string2[idx2], len, size);
+                mailSet[i] = addSet(mailSet, string2[idx2], len, size, i);
                 size += 1;
             }
             
@@ -161,14 +161,14 @@ void tokenize(mail **mails, int n_mails, TokenHead **tokenhead, MailSet mailSet[
                 //printf("目前在位的單詞 %s\n", curr->token);
  
                 int is_diff = 0;
-                is_diff = strncmp(curr->token, string2[idx2], len);
+                is_diff = strcasecmp(curr->token, string2[idx2]);
                 
                 if(is_diff == 0){
                     //printf("雖然collision但是檢查到同一個單詞: ");
 					if(i != curr->tail->key){
                         curr->tail->next = addSite(i);
                         curr->tail = curr->tail->next;
-                        mailSet[i] = addSet(mailSet[i], string2[idx2], len, size);
+                        mailSet[i] = addSet(mailSet, string2[idx2], len, size, i);
                         size += 1;
                     }
                     
@@ -197,7 +197,7 @@ int Find_Similar(int mid, float threshold, TokenHead** tokenhead, MailSet mailSe
         h = hash(element, &len);
         Token *curr = tokenhead[h]->head;
         int is_diff = 0;
-        is_diff = strncmp(curr->token, element, len);
+        is_diff = strcasecmp(curr->token, element);
 
         if(is_diff == 0){
             MailSite* tmp = curr->first;
@@ -211,7 +211,7 @@ int Find_Similar(int mid, float threshold, TokenHead** tokenhead, MailSet mailSe
 
         while(is_diff != 0){
             curr = curr->next;
-            is_diff = strncmp(curr->token, element, len);
+            is_diff = strcasecmp(curr->token, element);
         }
 
         MailSite* tmp = curr->first;
@@ -236,7 +236,7 @@ int main(void){
 	api.init(&n_mails, &n_queries, &mails, &queries);
 	//前置作業1. tokenize
     TokenHead **tokenhead = calloc(NK, sizeof(TokenHead*));
-    MailSet mailSet[100];
+    MailSet mailSet[10000];
     tokenize(&mails, n_mails, tokenhead, mailSet);
 
     for(int i = 0; i < n_queries; i++){
